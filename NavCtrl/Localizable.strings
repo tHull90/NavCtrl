@@ -1,0 +1,16 @@
+/* 
+  Localizable.strings
+  NavCtrl
+
+  Created by Timothy Hull on 1/30/17.
+  Copyright © 2017 Sponti. All rights reserved.
+*/
+
+
+
+
+"AAPL" = "Apple";
+"TSLA" = "Tesla";
+"TWTR" = "Twitter";
+"GOOG" = "Google";
+"FB" = "Facebook";

@@ -36,6 +36,7 @@ class CompanyController: UITableViewController {
         tableView.register(Cell.self, forCellReuseIdentifier: cellId)
         
         self.navigationItem.title = "Companies"
+        
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(handleEdit))
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "+", style: .plain, target: self, action: #selector(showAddCompanyTextField))
         
@@ -99,6 +100,33 @@ class CompanyController: UITableViewController {
         let productController = ProductController()
         nc.viewControllers = [productController]
         productController.navigationItem.title = companyNames[indexPath.row]
+        
+
+                let pageTitle = productController.navigationItem.title
+        
+                switch pageTitle! {
+                case "Apple":
+                    products = appleProducts
+                    productImages = appleImages
+                case "Google":
+                    products = googleProducts
+                    productImages = googleImages
+                case "Twitter":
+                    products = twitterProducts
+                    productImages = twitterImages
+                case "Tesla":
+                    products = teslaProducts
+                    productImages = teslaImages
+                case "Samsung":
+                    products = samsungProducts
+                    productImages = samsungImages
+                default:
+                    products = newProducts
+                    productImages = newProductImages
+                }
+
+        
+        
         present(nc, animated: true, completion: nil)
     }
     
@@ -133,6 +161,7 @@ class CompanyController: UITableViewController {
         logos.remove(at: sourceIndexPath.row)
         logos.insert(item, at: destinationIndexPath.row)
     }
+    
     func handleEdit() {
         if (doubleTap) {
             //Second Tap

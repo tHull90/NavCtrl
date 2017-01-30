@@ -13,7 +13,7 @@ import WebKit
 
 class ProductController: UITableViewController, WKNavigationDelegate {
     
-    let cellId = "productCell"
+    let cellId = "Cell"
     var webView: WKWebView!
     
     
@@ -43,6 +43,7 @@ class ProductController: UITableViewController, WKNavigationDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! Cell
         
         cell.textLabel?.text = products[indexPath.row]
+        
         DispatchQueue.main.async {
             if (productImages.count) >= indexPath.row + 1 {
                 cell.logoView.image = UIImage(named: productImages[indexPath.row])
@@ -50,9 +51,7 @@ class ProductController: UITableViewController, WKNavigationDelegate {
                 cell.logoView.image = UIImage(named: "noImage")
             }
         }
-        
-        
-        
+
         return cell
     }
     
@@ -132,18 +131,23 @@ class ProductController: UITableViewController, WKNavigationDelegate {
         
         switch pageTitle! {
         case "Apple":
+            productUrls = appleUrls as! [NSURL]
             products = appleProducts
             productImages = appleImages
         case "Google":
+            productUrls = googleUrls as! [NSURL]
             products = googleProducts
             productImages = googleImages
         case "Twitter":
+            productUrls = twitterUrls as! [NSURL]
             products = twitterProducts
             productImages = twitterImages
         case "Tesla":
+            productUrls = teslaUrls as! [NSURL]
             products = teslaProducts
             productImages = teslaImages
         case "Samsung":
+            productUrls = samsungUrls as! [NSURL]
             products = samsungProducts
             productImages = samsungImages
         default:
@@ -159,40 +163,16 @@ class ProductController: UITableViewController, WKNavigationDelegate {
     
     // WebView
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let pageTitle = self.navigationItem.title
-        
-        switch pageTitle! {
-        case "Apple":
-            productUrls = appleUrls as! [NSURL]
-            webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
-            webView.allowsBackForwardNavigationGestures = true
-            view = webView
-        case "Google":
-            productUrls = googleUrls as! [NSURL]
-            webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
-            webView.allowsBackForwardNavigationGestures = true
-            view = webView
-        case "Twitter":
-            productUrls = twitterUrls as! [NSURL]
-            webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
-            webView.allowsBackForwardNavigationGestures = true
-            view = webView
-        case "Tesla":
-            productUrls = teslaUrls as! [NSURL]
-            webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
-            webView.allowsBackForwardNavigationGestures = true
-            view = webView
-        default:
-            productUrls = samsungUrls as! [NSURL]
-            webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
-            webView.allowsBackForwardNavigationGestures = true
-            view = webView
-        }
+        webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
+        webView.allowsBackForwardNavigationGestures = true
+        view = webView
     }
     
     
     
-    // Add products
+    
+    
+    
     // *MARK* Adding companies
     lazy var addProductTextField: UITextField = {
         let textField = UITextField(frame:CGRect(origin:.zero, size:CGSize(width:100, height:28)))
@@ -243,9 +223,6 @@ class ProductController: UITableViewController, WKNavigationDelegate {
         } else {
             clearAddtextField()
         }
-        
-        
-        //*perform google image search for newProduct, use first image
         
     }
     

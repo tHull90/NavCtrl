@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import SystemConfiguration
 
 
 
@@ -44,32 +45,28 @@ extension UIViewController
 
 
 
-
-
-//Check for internet
-//    override func viewDidAppear(_ animated: Bool) {
-//        if Reachability.isConnectedToNetwork() == true {
-//            print("Internet connection OK")
-//        } else {
-//            print("Internet connection FAILED")
-//            var networkAlert = UIAlertController(title: "No Internet Connection", message: "Make sure your device is connected to the internet.", preferredStyle: .alert)
-//            networkAlert.show()
-//            }
-//    }
-
-
-//        // "Companies" title is a button that allows user to add their own companies
-//        let button =  UIButton(type: .custom)
-//        button.frame = CGRect(x: 0, y: 0, width: 100, height: 40)
-//        button.backgroundColor = UIColor.clear
-//        button.setTitle("Companies", for: UIControlState.normal)
-//        button.addTarget(self, action: #selector(showAddCompanyTextField), for: UIControlEvents.touchUpInside)
-//        self.navigationItem.titleView = button
-//        button.setTitleColor(UIColor.black, for: .normal)
-
-
-
-// Clear user defaults
-//        if let bundle = Bundle.main.bundleIdentifier {
-//            UserDefaults.standard.removePersistentDomain(forName: bundle)
-//        }
+// Check for internet connection
+func connectedToNetwork() -> Bool {
+    
+    var zeroAddress = sockaddr_in()
+    zeroAddress.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+    zeroAddress.sin_family = sa_family_t(AF_INET)
+    
+    guard let defaultRouteReachability = withUnsafePointer(to: &zeroAddress, {
+        $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            SCNetworkReachabilityCreateWithAddress(nil, $0)
+        }
+    }) else {
+        return false
+    }
+    
+    var flags: SCNetworkReachabilityFlags = []
+    if !SCNetworkReachabilityGetFlags(defaultRouteReachability, &flags) {
+        return false
+    }
+    
+    let isReachable = flags.contains(.reachable)
+    let needsConnection = flags.contains(.connectionRequired)
+    
+    return (isReachable && !needsConnection)
+}
