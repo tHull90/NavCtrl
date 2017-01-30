@@ -22,8 +22,7 @@ class Cell: UITableViewCell {
     let logoView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-//        imageView.layer.cornerRadius = 24
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleAspectFit
         imageView.layer.masksToBounds = true
         return imageView
     }()
