@@ -7,53 +7,91 @@
 //
 
 import UIKit
+import CoreData
 import WebKit
 
-
-
-class ProductController: UITableViewController, WKNavigationDelegate {
+class ProductController: UITableViewController, NSFetchedResultsControllerDelegate, WKNavigationDelegate {
+    
     
     let cellId = "Cell"
+    var viewController: CompanyController?
     var webView: WKWebView!
-    
-    
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.register(Cell.self, forCellReuseIdentifier: cellId)
-        
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(handleEdit))
         
         webView = WKWebView()
         
-        setPage()
+        tableView.register(Cell.self, forCellReuseIdentifier: cellId)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        // Navbar stuff
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Add", style: .plain, target: self, action: #selector(handleAdd))
+        
     }
     
     
     
     
-    // *MARK* Tableview data
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! Cell
-        
-        cell.textLabel?.text = products[indexPath.row]
-        
-        DispatchQueue.main.async {
-            if (productImages.count) >= indexPath.row + 1 {
-                cell.logoView.image = UIImage(named: productImages[indexPath.row])
-            } else {
-                cell.logoView.image = UIImage(named: "noImage")
-            }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        //1
+        guard let appDelegate =
+            UIApplication.shared.delegate as? AppDelegate else {
+                return
         }
-
-        return cell
+        let managedContext =
+            appDelegate.persistentContainer.viewContext
+        //2
+        let companyToDisplay = self.navigationItem.title!
+        let fetchRequest =
+            NSFetchRequest<NSManagedObject>(entityName: "Product")
+        fetchRequest.predicate = NSPredicate(format:"company.name == %@",companyToDisplay)
+        //3
+        do {
+            products = try managedContext.fetch(fetchRequest)
+        } catch let error as NSError {
+            print("Could not fetch. \(error), \(error.userInfo)")
+        }
     }
+    
+    
+    
+    
+    func save(name: String) {
+        
+        guard let appDelegate =
+            UIApplication.shared.delegate as? AppDelegate else {
+                return
+        }
+        
+        let managedContext =
+            appDelegate.persistentContainer.viewContext
+        
+        let entity =
+            NSEntityDescription.entity(forEntityName: "Product",
+                                       in: managedContext)!
+        
+        let product = NSManagedObject(entity: entity,
+                                      insertInto: managedContext)
+        
+        product.setValue(name, forKey: "name")
+        
+        do {
+            try managedContext.save()
+            products.append(product)
+        } catch let error as NSError {
+            print("Could not save. \(error), \(error.userInfo)")
+        }
+    }
+    
+    
+    
+    
+    
+    
+    // *MARK* Tableview data sources
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return products.count
@@ -63,29 +101,29 @@ class ProductController: UITableViewController, WKNavigationDelegate {
         return 72
     }
     
-    
-    
-    
-    
-    
-    // *MARK* Delete, Edit & Back
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool
-    {
-        return true
-    }
-    
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath)
-    {
-        if editingStyle == .delete
-        {
-            tableView.beginUpdates()
-            products.remove(at: indexPath.row)
-            productImages.remove(at: indexPath.row)
-            
-            tableView.deleteRows(at: [indexPath], with: .fade)
-            tableView.endUpdates()
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! Cell
+        let product = products[indexPath.row]
+        
+        cell.textLabel?.text = product.value(forKey: "name") as? String
+        
+        // Product images
+        DispatchQueue.main.async {
+            if let image = product.value(forKey: "image") as? String {
+                cell.logoView.image = UIImage(named: image)
+            } else {
+                cell.logoView.image = UIImage(named: "noImage")
+            }
         }
+        
+        return cell
     }
+    
+    
+    
+    
+    
+    // *MARK* Back/Edit/Add/Delete
     
     func handleBackButton() {
         
@@ -96,135 +134,104 @@ class ProductController: UITableViewController, WKNavigationDelegate {
         present(cc, animated: true, completion: nil)
     }
     
+    //    func handleEdit() {
+    //
+    //        if (doubleTap) {
+    //            //Second Tap
+    //            doubleTap = false
+    //            self.setEditing(false, animated: true)
+    //            navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
+    //        } else {
+    //            //First Tap
+    //            doubleTap = true
+    //            self.setEditing(true, animated: true)
+    //            navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Add Products", style: .plain, target: self, action: #selector(handleAdd))
+    //        }
+    //    }
+    
+    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath)
+    {
+        
+        let product = products[indexPath.row]
+        
+        if editingStyle == .delete {
+            managedContext.delete(product)
+            
+            do {
+                try managedContext.save()
+            } catch let error as NSError {
+                print("Error While Deleting Note: \(error.userInfo)")
+            }
+            
+        }
+        
+        // Fetch new data/reload table
+        //        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: productEntity)
+        //
+        //        do {
+        //            products = try managedContext.fetch(fetchRequest) as! [NSManagedObject]
+        //        } catch let error as NSError {
+        //            print("Error While Fetching Data From DB: \(error.userInfo)")
+        //        }
+        
+        tableView.reloadData()
+    }
+    
+    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
+        
+    }
+    
     override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
         return true
     }
     
-    override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
-        let item = products[sourceIndexPath.row]
-        products.remove(at: sourceIndexPath.row)
-        products.insert(item, at: destinationIndexPath.row)
-    }
-    
-    func handleEdit() {
+    func handleAdd() {
         
-        if (doubleTap) {
-            //Second Tap
-            doubleTap = false
-            self.setEditing(false, animated: true)
-            navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
-        } else {
-            //First Tap
-            doubleTap = true
-            self.setEditing(true, animated: true)
-            navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Add Products", style: .plain, target: self, action: #selector(showAddProductTextField))
-        }
-    }
-    
-    
-    
-    
-    
-    // Set page
-    func setPage() {
-        let pageTitle = self.navigationItem.title
+        let alert = UIAlertController(title: "New Product", message: "Add a new product", preferredStyle: .alert)
         
-        switch pageTitle! {
-        case "Apple":
-            productUrls = appleUrls as! [NSURL]
-            products = appleProducts
-            productImages = appleImages
-        case "Google":
-            productUrls = googleUrls as! [NSURL]
-            products = googleProducts
-            productImages = googleImages
-        case "Twitter":
-            productUrls = twitterUrls as! [NSURL]
-            products = twitterProducts
-            productImages = twitterImages
-        case "Tesla":
-            productUrls = teslaUrls as! [NSURL]
-            products = teslaProducts
-            productImages = teslaImages
-        case "Samsung":
-            productUrls = samsungUrls as! [NSURL]
-            products = samsungProducts
-            productImages = samsungImages
-        default:
-            products = newProducts
-            productImages = newProductImages
+        let saveAction = UIAlertAction(title: "Save", style: .default) {
+            [unowned self] action in
+            
+            guard let textField = alert.textFields?.first,
+                let newProduct = textField.text else {
+                    return
+            }
+            
+            self.save(name: newProduct)
+            self.tableView.reloadData()
         }
         
-        tableView.reloadData()
+        let cancelAction = UIAlertAction(title: "Cancel", style: .default)
+        
+        alert.addTextField()
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
-    
-    
     
     
     // WebView
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        webView.load(URLRequest(url: productUrls[indexPath.row] as URL))
-        webView.allowsBackForwardNavigationGestures = true
-        view = webView
-    }
-    
-    
-    
-    
-    
-    
-    // *MARK* Adding companies
-    lazy var addProductTextField: UITextField = {
-        let textField = UITextField(frame:CGRect(origin:.zero, size:CGSize(width:100, height:28)))
-        textField.borderStyle = .none
-        self.navigationItem.titleView = textField
-        textField.placeholder = "Add some products..."
         
-        return textField
-    }()
-    
-    func showAddProductTextField() {
-        self.navigationItem.titleView = addProductTextField
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Done", style: .plain, target: self, action: #selector(handleAddProduct))
+        let product = products[indexPath.row]
         
-    }
-    
-    // Clear text field & return page to normal once done button is pressed
-    func clearAddtextField() {
-        self.setEditing(false, animated: true)
-        self.addProductTextField.text = nil
-        self.navigationItem.titleView = nil
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
-        tableView.reloadData()
-    }
-    
-    func handleAddProduct() {
-        let newProduct = addProductTextField.text!
-        
-        // append newProducts array with newProduct
-        if self.addProductTextField.text != "" {
-            
-            switch self.navigationItem.title! {
-            case "Apple":
-                appleProducts.append("\(newProduct)")
-            case "Google":
-                googleProducts.append("\(newProduct)")
-            case "Twitter":
-                twitterProducts.append("\(newProduct)")
-            case "Tesla":
-                teslaProducts.append("\(newProduct)")
-            case "Samsung":
-                samsungProducts.append("\(newProduct)")
-            default:
-                newProducts.append("\(newProduct)")
-            }
-            clearAddtextField()
-            setPage()
-        } else {
-            clearAddtextField()
+        if let urlString = product.value(forKey: "url") as? String {
+            let url = URL(string:urlString)
+            webView.load(URLRequest(url: url!))
+            webView.allowsBackForwardNavigationGestures = true
+            view = webView
         }
         
+        print(product.value(forKey: "url") as? URL)
+        print(product.value(forKey: "url"))
+        print(product)
     }
+    
     
     
     

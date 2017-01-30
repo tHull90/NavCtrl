@@ -7,12 +7,14 @@
 //
 
 import UIKit
-import Alamofire
-import SwiftyJSON
-//import ReachabilitySwift
-import SystemConfiguration
+import CoreData
 
-
+var products = [NSManagedObject]()
+var companies = [NSManagedObject]()
+var container: NSPersistentContainer!
+let managedContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+let companyEntity = "Company"
+let productEntity = "Product"
 
 // Bool so Edit button allows double tap (once to show edit stuff then again to hide)
 var doubleTap : Bool = false
@@ -20,30 +22,126 @@ var doubleTap : Bool = false
 
 
 
-class CompanyController: UITableViewController {
+class CompanyController: UITableViewController, NSFetchedResultsControllerDelegate {
     
-    let cellId = "Cell"
     var productController: ProductController?
-    var stockPrices = [String]()
-    //    var companies: [Company]!
-    
+    let cellId = "Cell"
     
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        tableView.register(Cell.self, forCellReuseIdentifier: cellId)
-        
-        self.navigationItem.title = "Companies"
-        
+        // Navbar stuff
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Add", style: .plain, target: self, action: #selector(handleAdd))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(handleEdit))
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "+", style: .plain, target: self, action: #selector(showAddCompanyTextField))
+        title = "Companies"
         
+        
+        // Keyboard
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
         
-        //        companies = companyList()
+        tableView.register(Cell.self, forCellReuseIdentifier: cellId)
+        
+    }
+    
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        //1
+        guard let appDelegate =
+            UIApplication.shared.delegate as? AppDelegate else {
+                return
+        }
+        
+        let managedContext =
+            appDelegate.persistentContainer.viewContext
+        
+        //2
+        let fetchRequest =
+            NSFetchRequest<NSManagedObject>(entityName: "Company")
+        
+        //3
+        do {
+            companies = try managedContext.fetch(fetchRequest)
+        } catch let error as NSError {
+            print("Could not fetch. \(error), \(error.userInfo)")
+        }
+        
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    // *MARK* Add/Edit/Delete
+    
+    func handleAdd() {
+        
+        let alert = UIAlertController(title: "New Company", message: "Add a new company", preferredStyle: .alert)
+        
+        let saveAction = UIAlertAction(title: "Save", style: .default) {
+            [unowned self] action in
+            
+            guard let textField = alert.textFields?.first,
+                let newCompany = textField.text else {
+                    return
+            }
+            self.save(name: newCompany)
+            self.tableView.reloadData()
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .default)
+        
+        alert.addTextField()
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
+    func handleEdit() {
+        
+        if (doubleTap) {
+            //Second Tap
+            doubleTap = false
+            self.setEditing(false, animated: true)
+        } else {
+            //First Tap
+            doubleTap = true
+            self.setEditing(true, animated: true)
+        }
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath)
+    {
+        
+        let company = companies[indexPath.row]
+        
+        if editingStyle == .delete {
+            managedContext.delete(company)
+            
+            do {
+                try managedContext.save()
+            } catch let error as NSError {
+                print("Error While Deleting Note: \(error.userInfo)")
+            }
+            
+        }
+        
+        // Fetch new data/reload table
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: companyEntity)
+        
+        do {
+            companies = try managedContext.fetch(fetchRequest) as! [NSManagedObject]
+        } catch let error as NSError {
+            print("Error While Fetching Data From DB: \(error.userInfo)")
+        }
         
         tableView.reloadData()
     }
@@ -53,36 +151,71 @@ class CompanyController: UITableViewController {
     
     
     
-    // *MARK* Table view data sources
+    
+    
+    
+    func save(name: String) {
+        
+        guard let appDelegate =
+            UIApplication.shared.delegate as? AppDelegate else {
+                return
+        }
+        
+        let managedContext =
+            appDelegate.persistentContainer.viewContext
+        
+        let entity =
+            NSEntityDescription.entity(forEntityName: "Company",
+                                       in: managedContext)!
+        let company = NSManagedObject(entity: entity,
+                                      insertInto: managedContext)
+        
+        company.setValue(name, forKey: "name")
+        
+        do {
+            try managedContext.save()
+            companies.append(company)
+        } catch let error as NSError {
+            print("Could not save. \(error), \(error.userInfo)")
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // *MARK* Tableview data sources
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return companyNames.count
+        return companies.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! Cell
+        let company = companies[indexPath.row]
+        let stock = company.value(forKey: "stockPrice") as? String
         
-        // Labels
-        cell.textLabel?.text = companyNames[indexPath.row]
+        // Company name labels
+        cell.textLabel?.text = company.value(forKey: "name") as? String
         
+        // Stock price underneath
+        if let stock = stock {
+            cell.detailTextLabel?.text = "Current stock price: \(stock)"
+        }
         
-        // Detail labels
-        stockFetcher(completion: {
-            (prices) -> Void in
-            
-            if (prices?.count)! > indexPath.row + 1 {
-                cell.detailTextLabel?.text = "Current Stock Price: \(prices![indexPath.row])"
-            } else {
-                cell.detailTextLabel?.text = "No data found"
-            }
-            
-        })
-        
-        
-        // Company Logos
+        // Logos
         DispatchQueue.main.async {
-            if (logos.count) >= indexPath.row + 1 {
-                cell.logoView.image = UIImage(named: logos[indexPath.row])
+            if let logo = company.value(forKey: "logo") as? String {
+                cell.logoView.image = UIImage(named: logo)
             } else {
                 cell.logoView.image = UIImage(named: "noImage")
             }
@@ -96,129 +229,16 @@ class CompanyController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
+        let company = companies[indexPath.row]
+        
         let nc = UINavigationController()
         let productController = ProductController()
         nc.viewControllers = [productController]
-        productController.navigationItem.title = companyNames[indexPath.row]
-        
-
-                let pageTitle = productController.navigationItem.title
-        
-                switch pageTitle! {
-                case "Apple":
-                    products = appleProducts
-                    productImages = appleImages
-                case "Google":
-                    products = googleProducts
-                    productImages = googleImages
-                case "Twitter":
-                    products = twitterProducts
-                    productImages = twitterImages
-                case "Tesla":
-                    products = teslaProducts
-                    productImages = teslaImages
-                case "Samsung":
-                    products = samsungProducts
-                    productImages = samsungImages
-                default:
-                    products = newProducts
-                    productImages = newProductImages
-                }
-
-        
+        productController.navigationItem.title = company.value(forKey: "name") as? String
         
         present(nc, animated: true, completion: nil)
     }
-    
-    
-    
-    
-    // *MARK* Delete & Edit
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool
-    {
-        return true
-    }
-    
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath)
-    {
-        if editingStyle == .delete
-        {
-            tableView.beginUpdates()
-            companyNames.remove(at: indexPath.row)
-            logos.remove(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .fade)
-            tableView.endUpdates()
-        }
-    }
-    
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        return true
-    }
-    override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
-        let item = companyNames[sourceIndexPath.row]
-        companyNames.remove(at: sourceIndexPath.row)
-        companyNames.insert(item, at: destinationIndexPath.row)
-        logos.remove(at: sourceIndexPath.row)
-        logos.insert(item, at: destinationIndexPath.row)
-    }
-    
-    func handleEdit() {
-        if (doubleTap) {
-            //Second Tap
-            doubleTap = false
-            self.setEditing(false, animated: true)
-        } else {
-            //First Tap
-            doubleTap = true
-            self.setEditing(true, animated: true)
-        }
-    }
-    
-    
-    
-    
-    
-    
-    // *MARK* Adding companies
-    lazy var addCompanyTextField: UITextField = {
-        let textField = UITextField(frame:CGRect(origin:.zero, size:CGSize(width:100, height:28)))
-        textField.borderStyle = .none
-        self.navigationItem.titleView = textField
-        textField.placeholder = "Add a new company..."
-        
-        
-        return textField
-    }()
-    
-    
-    // Clear text field & return page to normal once done button is pressed
-    func clearAddtextField() {
-        self.addCompanyTextField.text = nil
-        self.navigationItem.titleView = nil
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(handleEdit))
-        tableView.reloadData()
-    }
-    
-    func showAddCompanyTextField() {
-        self.navigationItem.titleView = addCompanyTextField
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Done", style: .plain, target: self, action: #selector(handleAdd))
-    }
-    
-    func handleAdd() {
-        
-        // append companies array with newCompany
-        let newCompany = addCompanyTextField.text!
-        
-        if addCompanyTextField.text != "" {
-            companyNames.append("\(newCompany)")
-            clearAddtextField()
-        } else {
-            clearAddtextField()
-        }
-        
-    }
-    
-    
     
     
     

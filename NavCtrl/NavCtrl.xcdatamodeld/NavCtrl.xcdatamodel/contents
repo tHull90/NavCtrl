@@ -4,7 +4,7 @@
         <attribute name="logo" attributeType="String" syncable="YES"/>
         <attribute name="name" attributeType="String" syncable="YES"/>
         <attribute name="stockPrice" attributeType="String" syncable="YES"/>
-        <relationship name="products" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Product" inverseName="company" inverseEntity="Product" syncable="YES"/>
+        <relationship name="products" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Product" inverseName="company" inverseEntity="Product" syncable="YES"/>
     </entity>
     <entity name="Product" syncable="YES">
         <attribute name="image" attributeType="String" syncable="YES"/>
