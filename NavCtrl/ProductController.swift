@@ -134,20 +134,20 @@ class ProductController: UITableViewController, NSFetchedResultsControllerDelega
         present(cc, animated: true, completion: nil)
     }
     
-    //    func handleEdit() {
-    //
-    //        if (doubleTap) {
-    //            //Second Tap
-    //            doubleTap = false
-    //            self.setEditing(false, animated: true)
-    //            navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
-    //        } else {
-    //            //First Tap
-    //            doubleTap = true
-    //            self.setEditing(true, animated: true)
-    //            navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Add Products", style: .plain, target: self, action: #selector(handleAdd))
-    //        }
-    //    }
+        func handleEdit() {
+    
+            if (doubleTap) {
+                //Second Tap
+                doubleTap = false
+                self.setEditing(false, animated: true)
+                navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handleBackButton))
+            } else {
+                //First Tap
+                doubleTap = true
+                self.setEditing(true, animated: true)
+                navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Add Products", style: .plain, target: self, action: #selector(handleAdd))
+            }
+        }
     
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         return true

@@ -107,6 +107,47 @@ class DefaultData: NSObject {
     }
     
     
+    //Stocks (long way)
+    //    func stocks() {
+    //        let config = URLSessionConfiguration.default
+    //        let session = URLSession(configuration: config)
+    //        let url = URL(string: "https://query.yahooapis.com/v1/public/yql?q=select%20symbol%2C%20Ask%2C%20YearHigh%2C%20YearLow%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22AAPL%22)&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys")!
+    //
+    //        let task = session.dataTask(with: url, completionHandler: {
+    //            (data, response, error) in
+    //
+    //            if error != nil {
+    //
+    //                print(error!.localizedDescription)
+    //
+    //            } else {
+    //
+    //                do {
+    //
+    //                    if let json = try JSONSerialization.jsonObject(with: data!, options: .allowFragments) as? [String: Any]
+    //                    {
+    //
+    //                        //Logic here
+    //                        print(json)
+    //
+    //
+    //                    }
+    //
+    //                } catch {
+    //
+    //                    print("error in JSONSerialization")
+    //
+    //                }
+    //
+    //
+    //            }
+    //
+    //        })
+    //        task.resume()
+    //
+    //    }
+    
+    
     
     
 }
